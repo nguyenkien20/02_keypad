@@ -19,160 +19,233 @@
 #include <stdint.h>
 #include <stdio.h>
 // them ham delay
-void delay(void){
-	for(uint32_t i = 0; i < 300000; i++);
+void delay(void) {
+	for (volatile uint32_t i = 0; i < 300000; i++)
+		; // make sure compiler check loop everytime
 }
 
-int main(void)
-{
+int main(void) {
 	//peripheral register mapped addresses
-	uint32_t volatile *const GPIOCModeReg = (uint32_t *) 0x40020800; // offset 0x00
-	uint32_t volatile *const ClkCtrlReg = (uint32_t *) 0x40023830; // 0x30
-	uint32_t volatile *const GPIOC_IDR = (uint32_t *) 0x40020810; // 0x10
-	uint32_t volatile *const GPIOC_ODR = (uint32_t *) 0x40020814; // 0x14
-	uint32_t volatile *const GPIOC_PUPD = (uint32_t *) 0x4002080C; // 0x0C
+	uint32_t volatile *const GPIOCModeReg = (uint32_t*) 0x40020800; 	// offset 0x00
+	uint32_t volatile *const ClkCtrlReg = (uint32_t*) 0x40023830; 		// 0x30
+	uint32_t volatile *const GPIOC_IDR = (uint32_t*) 0x40020810;		 // 0x10
+	uint32_t volatile *const GPIOC_ODR = (uint32_t*) 0x40020814; 		// 0x14
+	uint32_t volatile *const GPIOC_PUPD = (uint32_t*) 0x4002080C; 		// 0x0C
 
 	// 1. Enable peripheral clock of GPIOC
-	*ClkCtrlReg |= (1<<2);
-	// 2. config pin PC0 -> PC3 as output (rows)
-	// a, clear
-	*GPIOCModeReg &= ~(0xFF);
-	// b, set
-	*GPIOCModeReg |= 0x55;
-	// 3. config pin PC4 -> PC7 as input (columns)
-	// clear all to 00 (input -> reset)
-	*GPIOCModeReg &= ~(0xFF << 8);
-	// 4. Enable internal pull up for PC4 -> PC7
-	*GPIOC_PUPD &= ~(0xFF << 8); //clear
-	*GPIOC_PUPD |= (0x55 << 8); // set
-while(1){
-	// make all rows high R1 R2 R3 R4 is HIGH
-	*GPIOC_ODR |= 0x0F;
-	// make R1 low -> PC0
-	*GPIOC_ODR &= ~(1<<0);
+	*ClkCtrlReg |= (1 << 2);
+	// 2. config pin PC0 -> PC3 as output (rows of keypad)
+	*GPIOCModeReg &= ~(0xFF); 		// clear value
+	*GPIOCModeReg |= 0x55; 			// set value
+	// 3. Config pin PC4 -> PC7 as input (columns of keypad)
+	*GPIOCModeReg &= ~(0xFF << 8); 	// clear all to 00 (input -> reset)
+	// 4. Enable internal pull up for PC4 -> PC7 (columns)
+	*GPIOC_PUPD &= ~(0xFF << 8); 	//clear
+	*GPIOC_PUPD |= (0x55 << 8); 	// set
 
-	// scan the colums
-	// check C1 (PC4) low or high
-	if(!(*GPIOC_IDR &(1<<4))) {
-			// key is pressed
-			printf("1\n");
-			delay();
-	}
-	// check C2 (PC5) low or high
-	if(!(*GPIOC_IDR &(1<<5))) {
-			// key is pressed
-			printf("2\n");
-			delay();
-	}
-	// check C3 (PC6) low or high
-	if(!(*GPIOC_IDR &(1<<6))) {
-			// key is pressed
-			printf("3\n");
-			delay();
-	}
-	// check C4 (PC7) low or high
-	if(!(*GPIOC_IDR &(1<<7))) {
-			// key is pressed
-			printf("A\n");
-			delay();
-	}
+	while (1) {
+		// make all rows high R1 R2 R3 R4 is HIGH
+		*GPIOC_ODR |= 0x0F;
+		// make R1 low -> PC0
+		*GPIOC_ODR &= ~(1 << 0);
 
-
-	// make all rows high R1 R2 R3 R4 is HIGH
-	*GPIOC_ODR |= 0x0F;
-	// make R2 low -> PC1
-	*GPIOC_ODR &= ~(1<<1);
-	// scan the colums
-	// check C1 (PC4) low or high
-	if(!(*GPIOC_IDR &(1<<4))) {
+		// scan the colums
+		// check C1 (PC4) low or high
+		if (!(*GPIOC_IDR & (1 << 4))) {
 			// key is pressed
-			printf("4\n");
 			delay();
-	}
-	// check C2 (PC5) low or high
-	if(!(*GPIOC_IDR &(1<<5))) {
+			if (!(*GPIOC_IDR & (1 << 4))) {
+				printf("1\n");
+				while (!(*GPIOC_IDR & (1 << 4)))
+					;
+				delay();
+			}
+		}
+		// check C2 (PC5) low or high
+		if (!(*GPIOC_IDR & (1 << 5))) {
 			// key is pressed
-			printf("5\n");
 			delay();
-	}
-	// check C3 (PC6) low or high
-	if(!(*GPIOC_IDR &(1<<6))) {
+			if (!(*GPIOC_IDR & (1 << 5))) {
+				printf("2\n");
+				while (!(*GPIOC_IDR & (1 << 5)))
+					;
+				delay();
+			}
+		}
+		// check C3 (PC6) low or high
+		if (!(*GPIOC_IDR & (1 << 6))) {
 			// key is pressed
-			printf("6\n");
 			delay();
-	}
-	// check C4 (PC7) low or high
-	if(!(*GPIOC_IDR &(1<<7))) {
+			if (!(*GPIOC_IDR & (1 << 6))) {
+				printf("3\n");
+				while (!(*GPIOC_IDR & (1 << 6)))
+					;
+				delay();
+			}
+		}
+		// check C4 (PC7) low or high
+		if (!(*GPIOC_IDR & (1 << 7))) {
 			// key is pressed
-			printf("B\n");
 			delay();
-	}
+			if (!(*GPIOC_IDR & (1 << 7))) {
+				printf("A\n");
+				while (!(*GPIOC_IDR & (1 << 7)))
+					;
+				delay();
+			}
+		}
 
+		// make all rows high R1 R2 R3 R4 is HIGH
+		*GPIOC_ODR |= 0x0F;
+		// make R2 low -> PC1
+		*GPIOC_ODR &= ~(1 << 1);
+		// scan the colums
+		// check C1 (PC4) low or high
+		if (!(*GPIOC_IDR & (1 << 4))) {
+			// key is pressed
+			delay();
+			if (!(*GPIOC_IDR & (1 << 4))) {
+				printf("4\n");
+				while (!(*GPIOC_IDR & (1 << 4)))
+					;     //
+				delay();
+			}
+		}
+		// check C2 (PC5) low or high
+		if (!(*GPIOC_IDR & (1 << 5))) {
+			// key is pressed
+			delay();
+			if (!(*GPIOC_IDR & (1 << 5))) {
+				printf("5\n");
+				while (!(*GPIOC_IDR & (1 << 5)))
+					;
+				delay();
+			}
 
-	// make all rows high R1 R2 R3 R4 is HIGH
-	*GPIOC_ODR |= 0x0F;
-	// make R3 low -> PC2
-	*GPIOC_ODR &= ~(1<<2);
-	// scan the colums
-	// check C1 (PC4) low or high
-	if(!(*GPIOC_IDR &(1<<4))) {
-				// key is pressed
-				printf("7\n");
+		}
+		// check C3 (PC6) low or high
+		if (!(*GPIOC_IDR & (1 << 6))) {
+			// key is pressed
+			delay();
+			if (!(*GPIOC_IDR & (1 << 6))) {
+				printf("6\n");
+				while (!(*GPIOC_IDR & (1 << 6)))
+					;
 				delay();
-	}
-	// check C2 (PC5) low or high
-	if(!(*GPIOC_IDR &(1<<5))) {
+			}
+			// check C4 (PC7) low or high
+			if (!(*GPIOC_IDR & (1 << 7))) {
 				// key is pressed
-				printf("8\n");
 				delay();
-	}
-	// check C3 (PC6) low or high
-	if(!(*GPIOC_IDR &(1<<6))) {
-				// key is pressed
-				printf("9\n");
-				delay();
-	}
-	// check C4 (PC7) low or high
-	if(!(*GPIOC_IDR &(1<<7))) {
-				// key is pressed
-				printf("C\n");
-				delay();
-	}
+				if (!(*GPIOC_IDR & (1 << 7))) {
+					printf("B\n");
+					while (!(*GPIOC_IDR & (1 << 7)))
+						;
+					delay();
+				}
+			}
 
+			// make all rows high R1 R2 R3 R4 is HIGH
+			*GPIOC_ODR |= 0x0F;
+			// make R3 low -> PC2
+			*GPIOC_ODR &= ~(1 << 2);
+			// scan the colums
+			// check C1 (PC4) low or high
+			if (!(*GPIOC_IDR & (1 << 4))) {
+				// key is pressed
+				delay();
+				if (!(*GPIOC_IDR & (1 << 4))) {
+					printf("7\n");
+					while (!(*GPIOC_IDR & (1 << 4)))
+						;
+					delay();
+				}
+			}
+			// check C2 (PC5) low or high
+			if (!(*GPIOC_IDR & (1 << 5))) {
+				// key is pressed
+				delay();
+				if (!(*GPIOC_IDR & (1 << 5))) {
+					printf("8\n");
+					while (!(*GPIOC_IDR & (1 << 5)))
+						;
+					delay();
+				}
+			}
+			// check C3 (PC6) low or high
+			if (!(*GPIOC_IDR & (1 << 6))) {
+				// key is pressed
+				delay();
+				if (!(*GPIOC_IDR & (1 << 6))) {
+					printf("9\n");
+					while (!(*GPIOC_IDR & (1 << 6)))
+						;
+					delay();
+				}
+			}
+			// check C4 (PC7) low or high
+			if (!(*GPIOC_IDR & (1 << 7))) {
+				// key is pressed
+				delay();
+				if (!(*GPIOC_IDR & (1 << 7))) {
+					printf("C\n");
+					while (!(*GPIOC_IDR & (1 << 7)))
+						;
+					delay();
+				}
+			}
 
-	// make all rows high R1 R2 R3 R4 is HIGH
-	*GPIOC_ODR |= 0x0F;
-	// make R4 low -> PC3
-	*GPIOC_ODR &= ~(1<<3);
-	// scan the colums
-	// check C1 (PC4) low or high
-	if(!(*GPIOC_IDR &(1<<4))) {
+			// make all rows high R1 R2 R3 R4 is HIGH
+			*GPIOC_ODR |= 0x0F;
+			// make R4 low -> PC3
+			*GPIOC_ODR &= ~(1 << 3);
+			// scan the colums
+			// check C1 (PC4) low or high
+			if (!(*GPIOC_IDR & (1 << 4))) {
 				// key is pressed
-				printf("*\n");
 				delay();
-	}
-	// check C2 (PC5) low or high
-	if(!(*GPIOC_IDR &(1<<5))) {
+				if (!(*GPIOC_IDR & (1 << 4))) {
+					printf("*\n");
+					while (!(*GPIOC_IDR & (1 << 4)))
+						;
+					delay();
+				}
+			}
+			// check C2 (PC5) low or high
+			if (!(*GPIOC_IDR & (1 << 5))) {
 				// key is pressed
-				printf("0\n");
 				delay();
-	}
-	// check C3 (PC6) low or high
-	if(!(*GPIOC_IDR &(1<<6))) {
+				if (!(*GPIOC_IDR & (1 << 5))) {
+					printf("0\n");
+					while (!(*GPIOC_IDR & (1 << 5)))
+						;
+					delay();
+				}
+			}
+			// check C3 (PC6) low or high
+			if (!(*GPIOC_IDR & (1 << 6))) {
 				// key is pressed
-				printf("#\n");
 				delay();
-	}
-	// check C4 (PC7) low or high
-	if(!(*GPIOC_IDR &(1<<7))) {
+				if (!(*GPIOC_IDR & (1 << 6))) {
+					printf("#\n");
+					while (!(*GPIOC_IDR & (1 << 6)))
+						;
+					delay();
+				}
+			}
+			// check C4 (PC7) low or high
+			if (!(*GPIOC_IDR & (1 << 7))) {
 				// key is pressed
-				printf("D\n");
 				delay();
+				if (!(*GPIOC_IDR & (1 << 7))) {
+					printf("D\n");
+					while (!(*GPIOC_IDR & (1 << 7)))
+						;
+					delay();
+				}
+			}
+		} //while loop
+		return 0;
 	}
-} //while loop
-	return 0;
 }
-
-
-
 
