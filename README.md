@@ -8,8 +8,6 @@ register access (no HAL/LL library) and prints the pressed key over UART/console
 ## Project Structure
 
 ```
-├── Inc/
-│   └── stm32f411re.h          # Memory map & register definitions (RCC, GPIO, etc.)
 ├── Src/
 │   ├── main.c                 # main function
 │   └── startup.c              # Vector table, stack initialization & Reset Handler
